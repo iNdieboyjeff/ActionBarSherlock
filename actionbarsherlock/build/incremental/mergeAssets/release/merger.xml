@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merger>
+
+    <dataSet config="main" >
+        <source path="/Users/jeffsutton/Dropbox/SS-git/ActionBarSherlock/actionbarsherlock/assets" />
+    </dataSet>
+    <dataSet config="release" >
+        <source path="/Users/jeffsutton/Dropbox/SS-git/ActionBarSherlock/actionbarsherlock/build-types/release/assets" />
+    </dataSet>
+
+</merger>
