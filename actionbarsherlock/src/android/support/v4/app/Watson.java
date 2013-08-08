@@ -13,131 +13,201 @@ import com.actionbarsherlock.view.MenuItem;
 import java.util.ArrayList;
 
 /** I'm in ur package. Stealing ur variables. */
-public abstract class Watson extends FragmentActivity implements OnCreatePanelMenuListener, OnPreparePanelListener, OnMenuItemSelectedListener {
-    private static final String TAG = "Watson";
+public abstract class Watson extends FragmentActivity implements
+		OnCreatePanelMenuListener, OnPreparePanelListener,
+		OnMenuItemSelectedListener {
+	private static final String TAG = "Watson";
 
-    /** Fragment interface for menu creation callback. */
-    public interface OnCreateOptionsMenuListener {
-        public void onCreateOptionsMenu(Menu menu, MenuInflater inflater);
-    }
-    /** Fragment interface for menu preparation callback. */
-    public interface OnPrepareOptionsMenuListener {
-        public void onPrepareOptionsMenu(Menu menu);
-    }
-    /** Fragment interface for menu item selection callback. */
-    public interface OnOptionsItemSelectedListener {
-        public boolean onOptionsItemSelected(MenuItem item);
-    }
+	/** Fragment interface for menu creation callback. */
+	public interface OnCreateOptionsMenuListener {
+		public void onCreateOptionsMenu(Menu menu, MenuInflater inflater);
+	}
 
-    private ArrayList<Fragment> mCreatedMenus;
+	/** Fragment interface for menu preparation callback. */
+	public interface OnPrepareOptionsMenuListener {
+		public void onPrepareOptionsMenu(Menu menu);
+	}
 
+	/** Fragment interface for menu item selection callback. */
+	public interface OnOptionsItemSelectedListener {
+		public boolean onOptionsItemSelected(MenuItem item);
+	}
 
-    ///////////////////////////////////////////////////////////////////////////
-    // Sherlock menu handling
-    ///////////////////////////////////////////////////////////////////////////
+	private ArrayList<Fragment> mCreatedMenus;
 
-    @Override
-    public boolean onCreatePanelMenu(int featureId, Menu menu) {
-        if (ActionBarSherlock.DEBUG) Log.d(TAG, "[onCreatePanelMenu] featureId: " + featureId + ", menu: " + menu);
+	// /////////////////////////////////////////////////////////////////////////
+	// Sherlock menu handling
+	// /////////////////////////////////////////////////////////////////////////
 
-        if (featureId == Window.FEATURE_OPTIONS_PANEL) {
-            boolean result = onCreateOptionsMenu(menu);
-            if (ActionBarSherlock.DEBUG) Log.d(TAG, "[onCreatePanelMenu] activity create result: " + result);
+	private boolean recurseOnCreatePanelMenu(ArrayList<Fragment> newMenus,
+			Fragment f, Menu menu, MenuInflater inflater) {
+		boolean show = false;
+		if (f != null && !f.mHidden && f.mHasMenu && f.mMenuVisible
+				&& f instanceof OnCreateOptionsMenuListener) {
+			show = true;
+			((OnCreateOptionsMenuListener) f).onCreateOptionsMenu(menu,
+					inflater);
+			if (newMenus == null) {
+				newMenus = new ArrayList<Fragment>();
+			}
+			newMenus.add(f);
+		}
+		// Dispatch calls to any child fragments
+		if (f != null && f.mChildFragmentManager != null
+				&& f.mChildFragmentManager.mAdded != null) {
+			for (int j = 0; j < f.mChildFragmentManager.mAdded.size(); j++) {
+				Fragment f2 = f.mChildFragmentManager.mAdded.get(j);
+				show |= recurseOnCreatePanelMenu(newMenus, f2, menu, inflater);
+			}
+		}
 
-            MenuInflater inflater = getSupportMenuInflater();
-            boolean show = false;
-            ArrayList<Fragment> newMenus = null;
-            if (mFragments.mAdded != null) {
-                for (int i = 0; i < mFragments.mAdded.size(); i++) {
-                    Fragment f = mFragments.mAdded.get(i);
-                    if (f != null && !f.mHidden && f.mHasMenu && f.mMenuVisible && f instanceof OnCreateOptionsMenuListener) {
-                        show = true;
-                        ((OnCreateOptionsMenuListener)f).onCreateOptionsMenu(menu, inflater);
-                        if (newMenus == null) {
-                            newMenus = new ArrayList<Fragment>();
-                        }
-                        newMenus.add(f);
-                    }
-                }
-            }
+		return show;
+	}
 
-            if (mCreatedMenus != null) {
-                for (int i = 0; i < mCreatedMenus.size(); i++) {
-                    Fragment f = mCreatedMenus.get(i);
-                    if (newMenus == null || !newMenus.contains(f)) {
-                        f.onDestroyOptionsMenu();
-                    }
-                }
-            }
+	@Override
+	public boolean onCreatePanelMenu(int featureId, Menu menu) {
+		if (ActionBarSherlock.DEBUG)
+			Log.d(TAG, "[onCreatePanelMenu] featureId: " + featureId
+					+ ", menu: " + menu);
 
-            mCreatedMenus = newMenus;
+		if (featureId == Window.FEATURE_OPTIONS_PANEL) {
+			boolean result = onCreateOptionsMenu(menu);
+			if (ActionBarSherlock.DEBUG)
+				Log.d(TAG, "[onCreatePanelMenu] activity create result: "
+						+ result);
 
-            if (ActionBarSherlock.DEBUG) Log.d(TAG, "[onCreatePanelMenu] fragments create result: " + show);
-            result |= show;
+			MenuInflater inflater = getSupportMenuInflater();
+			boolean show = false;
+			ArrayList<Fragment> newMenus = null;
+			if (mFragments.mAdded != null) {
+				for (int i = 0; i < mFragments.mAdded.size(); i++) {
+					Fragment f = mFragments.mAdded.get(i);
+					show |= recurseOnCreatePanelMenu(newMenus, f, menu,
+							inflater);
+				}
+			}
 
-            if (ActionBarSherlock.DEBUG) Log.d(TAG, "[onCreatePanelMenu] returning " + result);
-            return result;
-        }
-        return false;
-    }
+			if (mCreatedMenus != null) {
+				for (int i = 0; i < mCreatedMenus.size(); i++) {
+					Fragment f = mCreatedMenus.get(i);
+					if (newMenus == null || !newMenus.contains(f)) {
+						f.onDestroyOptionsMenu();
+					}
+				}
+			}
 
-    @Override
-    public boolean onPreparePanel(int featureId, View view, Menu menu) {
-        if (ActionBarSherlock.DEBUG) Log.d(TAG, "[onPreparePanel] featureId: " + featureId + ", view: " + view + " menu: " + menu);
+			mCreatedMenus = newMenus;
 
-        if (featureId == Window.FEATURE_OPTIONS_PANEL) {
-            boolean result = onPrepareOptionsMenu(menu);
-            if (ActionBarSherlock.DEBUG) Log.d(TAG, "[onPreparePanel] activity prepare result: " + result);
+			if (ActionBarSherlock.DEBUG)
+				Log.d(TAG, "[onCreatePanelMenu] fragments create result: "
+						+ show);
+			result |= show;
 
-            boolean show = false;
-            if (mFragments.mAdded != null) {
-                for (int i = 0; i < mFragments.mAdded.size(); i++) {
-                    Fragment f = mFragments.mAdded.get(i);
-                    if (f != null && !f.mHidden && f.mHasMenu && f.mMenuVisible && f instanceof OnPrepareOptionsMenuListener) {
-                        show = true;
-                        ((OnPrepareOptionsMenuListener)f).onPrepareOptionsMenu(menu);
-                    }
-                }
-            }
+			if (ActionBarSherlock.DEBUG)
+				Log.d(TAG, "[onCreatePanelMenu] returning " + result);
+			return result;
+		}
+		return false;
+	}
 
-            if (ActionBarSherlock.DEBUG) Log.d(TAG, "[onPreparePanel] fragments prepare result: " + show);
-            result |= show;
+	private boolean recurseOnPreparePanel(Fragment f, Menu menu) {
+		boolean show = false;
+		if (f != null && !f.mHidden && f.mHasMenu && f.mMenuVisible
+				&& f instanceof OnPrepareOptionsMenuListener) {
+			show = true;
+			((OnPrepareOptionsMenuListener) f).onPrepareOptionsMenu(menu);
+		}
 
-            result &= menu.hasVisibleItems();
-            if (ActionBarSherlock.DEBUG) Log.d(TAG, "[onPreparePanel] returning " + result);
-            return result;
-        }
-        return false;
-    }
+		// Dispatch calls to any child fragments
+		if (f != null && f.mChildFragmentManager != null
+				&& f.mChildFragmentManager.mAdded != null) {
+			for (int j = 0; j < f.mChildFragmentManager.mAdded.size(); j++) {
+				Fragment f2 = f.mChildFragmentManager.mAdded.get(j);
+				show = recurseOnPreparePanel(f2, menu);
+			}
+		}
+		return show;
+	}
 
-    @Override
-    public boolean onMenuItemSelected(int featureId, MenuItem item) {
-        if (ActionBarSherlock.DEBUG) Log.d(TAG, "[onMenuItemSelected] featureId: " + featureId + ", item: " + item);
+	@Override
+	public boolean onPreparePanel(int featureId, View view, Menu menu) {
+		if (ActionBarSherlock.DEBUG)
+			Log.d(TAG, "[onPreparePanel] featureId: " + featureId + ", view: "
+					+ view + " menu: " + menu);
 
-        if (featureId == Window.FEATURE_OPTIONS_PANEL) {
-            if (onOptionsItemSelected(item)) {
-                return true;
-            }
+		if (featureId == Window.FEATURE_OPTIONS_PANEL) {
+			boolean result = onPrepareOptionsMenu(menu);
+			if (ActionBarSherlock.DEBUG)
+				Log.d(TAG, "[onPreparePanel] activity prepare result: "
+						+ result);
 
-            if (mFragments.mAdded != null) {
-                for (int i = 0; i < mFragments.mAdded.size(); i++) {
-                    Fragment f = mFragments.mAdded.get(i);
-                    if (f != null && !f.mHidden && f.mHasMenu && f.mMenuVisible && f instanceof OnOptionsItemSelectedListener) {
-                        if (((OnOptionsItemSelectedListener)f).onOptionsItemSelected(item)) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-        return false;
-    }
+			boolean show = false;
+			if (mFragments.mAdded != null) {
+				for (int i = 0; i < mFragments.mAdded.size(); i++) {
+					Fragment f = mFragments.mAdded.get(i);
+					show |= recurseOnPreparePanel(f, menu);
+				}
+			}
 
-    public abstract boolean onCreateOptionsMenu(Menu menu);
+			if (ActionBarSherlock.DEBUG)
+				Log.d(TAG, "[onPreparePanel] fragments prepare result: " + show);
+			result |= show;
 
-    public abstract boolean onPrepareOptionsMenu(Menu menu);
+			result &= menu.hasVisibleItems();
+			if (ActionBarSherlock.DEBUG)
+				Log.d(TAG, "[onPreparePanel] returning " + result);
+			return result;
+		}
+		return false;
+	}
 
-    public abstract boolean onOptionsItemSelected(MenuItem item);
+	private boolean recurseOnMenuItemSelected(Fragment f, MenuItem item) {
+		if (f != null && !f.mHidden && f.mHasMenu && f.mMenuVisible
+				&& f instanceof OnOptionsItemSelectedListener) {
+			if (((OnOptionsItemSelectedListener) f).onOptionsItemSelected(item)) {
+				return true;
+			}
+		}
+		// Dispatch calls to any child fragments
+		if (f != null && f.mChildFragmentManager != null
+				&& f.mChildFragmentManager.mAdded != null) {
+			for (int j = 0; j < f.mChildFragmentManager.mAdded.size(); j++) {
+				Fragment f2 = f.mChildFragmentManager.mAdded.get(j);
+				if (recurseOnMenuItemSelected(f2, item))
+					return true;
+			}
+		}
 
-    public abstract MenuInflater getSupportMenuInflater();
+		return false;
+	}
+
+	@Override
+	public boolean onMenuItemSelected(int featureId, MenuItem item) {
+		if (ActionBarSherlock.DEBUG)
+			Log.d(TAG, "[onMenuItemSelected] featureId: " + featureId
+					+ ", item: " + item);
+
+		if (featureId == Window.FEATURE_OPTIONS_PANEL) {
+			if (onOptionsItemSelected(item)) {
+				return true;
+			}
+
+			if (mFragments.mAdded != null) {
+				for (int i = 0; i < mFragments.mAdded.size(); i++) {
+					Fragment f = mFragments.mAdded.get(i);
+					if (recurseOnMenuItemSelected(f, item))
+						return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	public abstract boolean onCreateOptionsMenu(Menu menu);
+
+	public abstract boolean onPrepareOptionsMenu(Menu menu);
+
+	public abstract boolean onOptionsItemSelected(MenuItem item);
+
+	public abstract MenuInflater getSupportMenuInflater();
 }
