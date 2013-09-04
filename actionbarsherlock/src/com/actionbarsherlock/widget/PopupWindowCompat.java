@@ -1,5 +1,5 @@
 
-package com.actionbarsherlock.internal.widget;
+package com.actionbarsherlock.widget;
 
 import java.lang.reflect.Field;
 
